@@ -1,0 +1,110 @@
+﻿name: Build, Test, and Deploy to Render
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test --no-restore --configuration Release
+
+  build-and-push-docker:
+    needs: build-test
+    if: github.event_name == 'push'  # Only on merge, not on PR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set lowercase image name
+        id: image
+        run: |
+          REPO_NAME=${{ github.repository }}
+          echo "IMAGE=${REPO_NAME,,}" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ steps.image.outputs.IMAGE }}:latest
+          file: ./Dockerfile
+
+  deploy-to-render:
+    needs: build-and-push-docker
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'  # Only on push, not on PR
+
+    steps:
+      - name: Deploy to Render
+        id: deploy
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${{ secrets.RENDER_PAYMENT_SERVICE_DEPLOY_WEBHOOK }}")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+
+          echo "HTTP Status Code: $HTTP_CODE"
+          echo "Response Body: $BODY"
+
+          if [[ $HTTP_CODE =~ ^2[0-9][0-9]$ ]]; then
+            echo "✅ Deployment triggered successfully!"
+            echo "status=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Deployment failed with HTTP status: $HTTP_CODE"
+            echo "status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Wait for deployment
+        if: steps.deploy.outputs.status == 'success'
+        run: sleep 10
+
+      - name: Verify deployment
+        if: steps.deploy.outputs.status == 'success'
+        run: |
+          echo "✅ Deployment verified successfully!"
+          echo "Service URL: https://learning-paymentservice.onrender.com"
+
+      - name: Deployment failed notification
+        if: steps.deploy.outputs.status == 'failed'
+        run: |
+          echo "❌ Render deployment failed. Please check the webhook URL and API key."
+          exit 1
