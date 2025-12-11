@@ -9,19 +9,31 @@ on:
       - master
 
 jobs:
-  build-test:
+  build-test-sonar:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # needed for better Sonar analysis [web:41]
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0'
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@ba3875ecf642b2129de2b589510c81a8b53dbf4e
+        with:
+          args: >
+            -Dsonar.projectKey=krunal-parmar24_Learning.PaymentService
+            -Dsonar.organization=krunal-parmar24
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_PROJECT_KEY: krunal-parmar24_Learning.PaymentService
+          SONAR_ORGANIZATION: krunal-parmar24
 
       - name: Restore
         run: dotnet restore
@@ -33,7 +45,7 @@ jobs:
         run: dotnet test --no-restore --configuration Release
 
   build-and-push-docker:
-    needs: build-test
+    needs: build-test-sonar
     if: github.event_name == 'push'  # Only on merge, not on PR
     runs-on: ubuntu-latest
     permissions:
