@@ -10,6 +10,9 @@ COPY . .
 
 # Restore dependencies
 RUN dotnet restore Learning.PaymentService.API/Learning.PaymentService.API.csproj
+RUN dotnet restore Learning.PaymentService.Application/Learning.PaymentService.Application.csproj
+RUN dotnet restore Learning.PaymentService.Infrastructure/Learning.PaymentService.Infrastructure.csproj
+RUN dotnet restore Learning.PaymentService.Domain/Learning.PaymentService.Domain.csproj
 
 # Build and publish
 WORKDIR /src/Learning.PaymentService.API
