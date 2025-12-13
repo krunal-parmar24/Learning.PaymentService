@@ -7,10 +7,10 @@ namespace Learning.PaymentService.Domain.Entities
     /// </summary>
     public class Payment : BaseEntity
     {
-        public int OrderId { get; set; }
-        public decimal Amount { get; set; }
-        public PaymentMethod PaymentMethod { get; set; }
-        public PaymentStatus Status { get; set; }
-        public string TransactionId { get; set; } = string.Empty;
+        public required int OrderId { get; set; }
+        public required decimal Amount { get; set; }
+        public required PaymentMethod PaymentMethod { get; set; }
+        public required PaymentStatus Status { get; set; }
+        public required string TransactionId { get; set; }
     }
 }
