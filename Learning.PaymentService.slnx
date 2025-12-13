@@ -3,4 +3,7 @@
     <File Path="Dockerfile" />
   </Folder>
   <Project Path="Learning.PaymentService.API/Learning.PaymentService.API.csproj" />
+  <Project Path="Learning.PaymentService.Application/Learning.PaymentService.Application.csproj" Id="69f14637-59d0-4970-8612-738e6fe0ce47" />
+  <Project Path="Learning.PaymentService.Domain/Learning.PaymentService.Domain.csproj" Id="e1d4c9f4-d68a-4c7c-af47-8dabe4fc231c" />
+  <Project Path="Learning.PaymentService.Infrastructure/Learning.PaymentService.Infrastructure.csproj" Id="df0f656c-607e-44ea-9977-4232f81fa1c5" />
 </Solution>
